@@ -97,9 +97,13 @@ async def bigquery_oauth_start(user: User = Depends(get_current_user)):
 @router.get("/bigquery/callback")
 async def bigquery_oauth_callback(code: str, state: str, db: AsyncSession = Depends(get_db)):
     tokens = await exchange_google_code(code, settings.google_bq_redirect_uri)
+    try:
+        org_uuid = uuid.UUID(state)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid state")
     # Store pending token so frontend can complete the setup
     pending = DataSource(
-        org_id=state,
+        org_id=org_uuid,
         name="BigQuery (pending setup)",
         source_type="bigquery",
         config={"tokens": tokens},
